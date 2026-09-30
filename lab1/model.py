@@ -1,4 +1,4 @@
-from schema import FarmRequest
+from schema import FarmRequest, PredictionResponse
 
 # ------------------------------------------------------------
 # МОДЕЛЬ МАШИННОГО ОБУЧЕНИЯ
@@ -7,7 +7,7 @@ from schema import FarmRequest
 # Сейчас определим функцию с условной конструкцией
 # ------------------------------------------------------------
 
-predictions = {}
+predictions : dict[str, PredictionResponse] = {}
 
 def calculate_risk(data: FarmRequest) -> float:
     """

@@ -1,10 +1,11 @@
 from fastapi import APIRouter
+
 from schema import HealthResponse
 
 router = APIRouter(prefix="/health", tags=[])
 
 @router.get(
-    "/",
+    "",
     response_model=HealthResponse,
     summary="Проверка состояния API",
     description=(
@@ -12,11 +13,9 @@ router = APIRouter(prefix="/health", tags=[])
         "что REST API запущен и отвечает."
     )
 )
-def health():
+def health() -> HealthResponse:
     """
     Проверка работоспособности API.
     """
 
-    return {
-        "status": "ok"
-    }
+    return HealthResponse(status="ok")

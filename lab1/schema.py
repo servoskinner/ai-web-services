@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -67,7 +69,7 @@ class PredictionResponse(BaseModel):
     request_id: str
     farm_id: str
     risk_score: float
-    risk_level: str
+    risk_level: Literal["low", "medium", "high"]
     recommendation: str
     model_version: str
 

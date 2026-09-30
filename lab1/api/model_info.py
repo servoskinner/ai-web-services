@@ -1,11 +1,12 @@
-from constants import *
 from fastapi import APIRouter
+
+from constants import *
 from schema import ModelInfoResponse
 
 router = APIRouter(prefix="/model_info", tags=[])
 
 @router.get(
-    "/",
+    "",
     response_model=ModelInfoResponse,
     summary="Информация о модели",
     description=(
@@ -25,9 +26,9 @@ def model_info() -> ModelInfoResponse:
         else "unavailable"
     )
 
-    return {
-        "model_name": MODEL_NAME,
-        "model_version": MODEL_VERSION,
-        "model_type": MODEL_TYPE,
-        "status": model_status
-    }
+    return ModelInfoResponse(
+        model_name=MODEL_NAME,
+        model_version=MODEL_VERSION,
+        model_type=MODEL_TYPE,
+        status=model_status,
+    )
