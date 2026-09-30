@@ -14,7 +14,15 @@ router = APIRouter(prefix="/predictions", tags=[])
     description=(
         "Возвращает сохраненный прогноз "
         "по его уникальному идентификатору."
-    )
+    ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Internal server error",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Not found",
+        },
+    }
 )
 def get_prediction(request_id: str) -> PredictionResponse:
     """
@@ -39,7 +47,12 @@ def get_prediction(request_id: str) -> PredictionResponse:
         "Возвращает список выполненных прогнозов. "
         "Поддерживает ограничение количества результатов "
         "и фильтрацию по уровню риска."
-    )
+    ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Internal server error",
+        }
+    }
 )
 def get_predictions(
 

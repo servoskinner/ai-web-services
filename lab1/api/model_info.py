@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from constants import *
 from schema import ModelInfoResponse
@@ -12,7 +12,12 @@ router = APIRouter(prefix="/model_info", tags=[])
     description=(
         "Возвращает название, версию, тип "
         "и текущее состояние модели."
-    )
+    ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Internal server error",
+        },
+    }
 )
 def model_info() -> ModelInfoResponse:
     """

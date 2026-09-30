@@ -19,7 +19,18 @@ logger = logging.getLogger(__name__)
         "Принимает характеристики хозяйства, "
         "выполняет валидацию, инференс модели "
         "и возвращает оценку риска."
-    )
+    ),
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Service unavailable",
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Internal server error",
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "Bad request",
+        },
+    }
 )
 def predict(request: FarmRequest) -> PredictionResponse:
     """
