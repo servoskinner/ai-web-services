@@ -1,4 +1,4 @@
-from schema import FarmRequest, PredictionResponse
+from schema import FarmRequest
 
 # ------------------------------------------------------------
 # МОДЕЛЬ МАШИННОГО ОБУЧЕНИЯ
@@ -7,38 +7,42 @@ from schema import FarmRequest, PredictionResponse
 # Сейчас определим функцию с условной конструкцией
 # ------------------------------------------------------------
 
-predictions : dict[str, PredictionResponse] = {}
+MODEL_NAME = "agro-risk-model"
+MODEL_VERSION = "1.0"
+MODEL_TYPE = "risk-scoring"
 
-def calculate_risk(data: FarmRequest) -> float:
+# Имитация состояния модели.
+# Если False, endpoints инференса возвращаем HTTP 503.
+MODEL_READY = True
+
+# debug
+MODEL_FIXED_OVERHEAD_SECONDS = 0.02
+MODEL_PER_ITEM_SECONDS = 0.003
+
+def calculate_risk(
+    data: FarmRequest,
+) -> float:
     """
-    Реализует простую логику оценки риска по финансовым показателям
-    и отраслевым факторам.
+    Имитация ML-модели.
     """
-        
     score = 0.1
 
-    # Длительная просрочка увеличивает риск
     if data.payment_delay_days > 30:
         score += 0.3
 
-    # Наличие предыдущих дефолтов увеличивает риск
     if data.previous_defaults > 0:
         score += 0.3
 
-    # Большая задолженность увеличивает риск
     if data.debt > 5_000_000:
         score += 0.2
 
-    # Малое количество осадков условно увеличивает
-    # аграрный риск
     if data.precipitation_mm < 100:
         score += 0.1
 
-    # Ограничиваем значение диапазоном от 0 до 1
-    score = min(score, 1.0)
-
-    return round(score, 2)
-
+    return round(
+        min(score, 1.0),
+        2,
+    )
 
 # ПОЛУЧЕНИЕ РИСК-ПРОФИЛЯ
 def get_risk_level(score: float) -> str:

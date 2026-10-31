@@ -1,14 +1,18 @@
-import logging
-import uuid
+import asyncio
 
-from fastapi import APIRouter, HTTPException, status
-
-from constants import *
-from model import calculate_risk, get_recommendation, get_risk_level, predictions
-from schema import *
+from batch import INFERENCE_TIMEOUT_SECONDS, model_predict_single
+from business_logic import validate_business_rules
+from db import save_prediction
+from fastapi import APIRouter, HTTPException, Request, status
+from model import (
+    MODEL_READY,
+    MODEL_VERSION,
+    get_recommendation,
+    get_risk_level,
+)
+from schema import FarmRequest, PredictionItem, PredictionResponse
 
 router = APIRouter(prefix="/predict", tags=[])
-logger = logging.getLogger(__name__)
 
 @router.post(
     "",
@@ -21,18 +25,21 @@ logger = logging.getLogger(__name__)
         "и возвращает оценку риска."
     ),
     responses={
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "Service unavailable",
-        },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Internal server error",
-        },
         status.HTTP_400_BAD_REQUEST: {
-            "description": "Bad request",
+            "description": "Unknown region or invalid X-Request-ID",
         },
-    }
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Model or prediction storage unavailable",
+        },
+        status.HTTP_504_GATEWAY_TIMEOUT: {
+            "description": "Inference timeout",
+        },
+    },
 )
-def predict(request: FarmRequest) -> PredictionResponse:
+async def predict(
+    data: FarmRequest,
+    request: Request
+):
     """
     Основной endpoint сервиса.
     """
@@ -52,37 +59,28 @@ def predict(request: FarmRequest) -> PredictionResponse:
     # - диапазоны.
     #
     # Осталось проверить бизнес-правила (например, разрешённые регионы).
-    if request.region not in ALLOWED_REGIONS:
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Unknown region: {request.region}. "
-                f"Allowed regions: "
-                f"{sorted(ALLOWED_REGIONS)}"
-            )
-        )
-        
-    # 3. Логирование входящего запроса
-    logger.info(
-        "Prediction request received | farm_id=%s",
-        request.farm_id
-    )
+    validate_business_rules(data)
+    request_id = request.state.id
   
     # 4. ИНФЕРЕНС
-    score = calculate_risk(request)
+    try:
+        score = await asyncio.wait_for(
+            model_predict_single(data),
+            timeout=INFERENCE_TIMEOUT_SECONDS
+        )
+    except TimeoutError:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Inference timeout"
+        )
 
     # 5. ПОСТПРОЦЕССИНГ
     level = get_risk_level(score)
     recommendation = get_recommendation(level)
 
-    # 6. СОЗДАЕМ УНИКАЛЬНЫЙ ID ЗАПРОСА
-    request_id = str(uuid.uuid4())
-
     # 7. ФОРМИРУЕМ РЕЗУЛЬТАТ
-    result = PredictionResponse(
-        request_id=request_id, 
-        farm_id=request.farm_id, 
+    prediction = PredictionItem(
+        farm_id=data.farm_id, 
         risk_score=score, 
         risk_level=level, 
         recommendation=recommendation, 
@@ -90,18 +88,9 @@ def predict(request: FarmRequest) -> PredictionResponse:
     )
 
     # 8. СОХРАНЯЕМ РЕЗУЛЬТАТ 
-    predictions[request_id] = result
-
-    # 9. ЛОГИРОВАНИЕ РЕЗУЛЬТАТА
-    logger.info(
-        "Prediction completed | "
-        "request_id=%s | "
-        "farm_id=%s | "
-        "risk_score=%s | "
-        "risk_level=%s",
-        request_id,
-        request.farm_id,
-        score,
-        level
+    await save_prediction(
+        prediction.model_dump() | {"request_id": request_id},
+        source="single",
     )
-    return result
+
+    return PredictionResponse(request_id=request_id, item=prediction)

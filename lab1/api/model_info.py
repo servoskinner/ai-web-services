@@ -1,9 +1,8 @@
 from fastapi import APIRouter, status
-
-from constants import *
+from model import MODEL_NAME, MODEL_READY, MODEL_TYPE, MODEL_VERSION
 from schema import ModelInfoResponse
 
-router = APIRouter(prefix="/model_info", tags=[])
+router = APIRouter(prefix="/model-info", tags=[])
 
 @router.get(
     "",
@@ -13,11 +12,6 @@ router = APIRouter(prefix="/model_info", tags=[])
         "Возвращает название, версию, тип "
         "и текущее состояние модели."
     ),
-    responses={
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Internal server error",
-        },
-    }
 )
 def model_info() -> ModelInfoResponse:
     """
