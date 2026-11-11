@@ -5,3 +5,5 @@
 *.md
 *.pdf
 *.cache
+*venv
+*/tmp
